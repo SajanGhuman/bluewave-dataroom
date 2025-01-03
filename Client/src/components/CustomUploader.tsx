@@ -74,11 +74,11 @@ export default function CustomUploader({
 			}
 
 			const formData = new FormData();
-			formData.append('file', file);
+			formData.set('file', file);
 
 			const response = await axios.post('/api/documents/upload', formData);
 
-			if (response?.status === 200 && response.data?.document) {
+			if (response?.status === 200 && response.data?.documents) {
 				handleUploadFile();
 			} else {
 				handleFailedFileError();
@@ -119,6 +119,7 @@ export default function CustomUploader({
 				accept={fileFormats === 'JPG, PNG' ? 'image/*' : 'application/pdf'}
 				style={{ display: 'none' }}
 				onChange={handleFileSelect}
+				multiple
 			/>
 		</Box>
 	);

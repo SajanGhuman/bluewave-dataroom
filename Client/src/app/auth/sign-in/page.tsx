@@ -20,8 +20,8 @@ export default function SignIn() {
 
 	const { values, handleChange, handleBlur, getError, validateAll } = useValidatedFormData({
 		initialValues: {
-			email: '',
-			password: '',
+			email: 'sajanghuman18@gmail.com',
+			password: 'test',
 			remember: false,
 		},
 		validationRules: {
