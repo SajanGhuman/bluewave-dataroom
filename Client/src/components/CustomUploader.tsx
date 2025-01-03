@@ -24,9 +24,9 @@ export default function CustomUploader({
 	const { formatFileSize } = useFileInfo();
 
 	const handleUploadFile = () => {
-		console.log('File Uploaded Successfully!');
+		console.log('Files Uploaded Successfully!');
 		showToast({
-			message: 'File Uploaded Successfully!',
+			message: 'Files Uploaded Successfully!',
 			variant: 'success',
 		});
 	};
@@ -35,6 +35,22 @@ export default function CustomUploader({
 		console.log('File Uploading Failed!');
 		showToast({
 			message: 'File Uploading Failed!',
+			variant: 'error',
+		});
+	};
+
+	const handleSizeFileError = () => {
+		console.log('One or more files exceed the 1MB size limit.');
+		showToast({
+			message: 'One or more files exceed the 1MB size limit.',
+			variant: 'error',
+		});
+	};
+
+	const handleLimitFileError = () => {
+		console.log('One or more files exceed the undefined size limit.');
+		showToast({
+			message: 'One or more files exceed the undefined size limit.',
 			variant: 'error',
 		});
 	};
@@ -49,47 +65,71 @@ export default function CustomUploader({
 
 	// Handle file selection
 	const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
+		const files = e.target.files;
 
-		if (file) {
-			const formattedFileSize = formatFileSize(file.size);
-			handleFileInfo((prevFileInfo) => ({
-				...prevFileInfo,
-				name: file.name,
-				size: formattedFileSize,
-				type: file.type,
-			}));
-		} else {
-			return;
-		}
+		if (files && files.length > 0) {
+			console.log('Files selected:', files); // Log the selected files
 
-		setUploading(true);
+			const fileSizeEnv = process.env.FILE_SIZE;
+			console.log(process.env);
+			console.log(fileSizeEnv);
+			const maxFileSize = 1 * 1024 * 1024;
 
-		try {
-			if (!session) {
-				console.error('User not authenticated!');
-				handleNotAuthenticatedError();
-				setUploading(false);
+			//const maxFileSize = Number(fileSizeEnv) * 1024 * 1024;
+			//console.log(maxFileSize);
+
+			// Check if the number of files exceeds 5 or any file exceeds 1MB
+			if (files.length > 5) {
+				console.error('You can upload a maximum of 5 files.');
+				handleSizeFileError();
 				return;
 			}
 
-			const formData = new FormData();
-			formData.set('file', file);
-
-			const response = await axios.post('/api/documents/upload', formData);
-
-			if (response?.status === 200 && response.data?.documents) {
-				handleUploadFile();
-			} else {
-				handleFailedFileError();
+			// Check each file's size to ensure it does not exceed 1MB
+			const fileTooLarge = Array.from(files).some((file) => file.size > maxFileSize); // 1MB
+			if (fileTooLarge) {
+				console.error(`One or more files exceed the 5 size limit.`);
+				handleLimitFileError();
+				return;
 			}
-		} catch (error: any) {
-			const errorMessage =
-				error.response?.data?.error || error.message || 'Unexpected error occurred';
-			console.error('Error uploading file:', errorMessage, error);
-			handleFailedFileError();
-		} finally {
-			setUploading(false);
+
+			setUploading(true);
+
+			try {
+				if (!session) {
+					console.error('User not authenticated!');
+					handleNotAuthenticatedError();
+					setUploading(false);
+					return;
+				}
+
+				const formData = new FormData();
+				Array.from(files).forEach((file) => {
+					formData.append('files', file); // Append each file to FormData
+				});
+
+				// Log the FormData to ensure files are being appended
+				console.log('FormData:', formData);
+
+				const response = await axios.post('/api/documents/upload', formData, {
+					headers: {
+						'Content-Type': 'multipart/form-data', // Ensure proper content type
+					},
+				});
+
+				if (response?.status === 200 && response.data?.documents) {
+					handleUploadFile();
+				} else {
+					handleFailedFileError();
+				}
+			} catch (error: any) {
+				const errorMessage =
+					error.response?.data?.error || error.message || 'Unexpected error occurred';
+				console.error('Error uploading files:', errorMessage, error);
+				handleFailedFileError();
+			} finally {
+				setUploading(false);
+			}
 		}
 	};
 
@@ -99,6 +139,7 @@ export default function CustomUploader({
 				value={fileInfo.name}
 				size='small'
 				fullWidth
+				disabled
 			/>
 			<Button
 				variant='outlined'
@@ -119,7 +160,7 @@ export default function CustomUploader({
 				accept={fileFormats === 'JPG, PNG' ? 'image/*' : 'application/pdf'}
 				style={{ display: 'none' }}
 				onChange={handleFileSelect}
-				multiple
+				multiple // Allow multiple files
 			/>
 		</Box>
 	);
