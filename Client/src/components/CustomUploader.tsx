@@ -7,9 +7,9 @@ import { useState } from 'react';
 
 interface CustomUploaderProps {
 	fileFormats?: string;
-	fileInfo: { name: string; size: string; type: string };
+	fileInfo: { name: string; size: string; type: string }[]; // Array of file info objects
 	handleFileInfo: React.Dispatch<
-		React.SetStateAction<{ name: string; size: string; type: string }>
+		React.SetStateAction<{ name: string; size: string; type: string }[]>
 	>;
 }
 
@@ -42,15 +42,15 @@ export default function CustomUploader({
 	const handleSizeFileError = () => {
 		console.log('One or more files exceed the 1MB size limit.');
 		showToast({
-			message: 'One or more files exceed the 1MB size limit.',
+			message: 'File cannot be more than 5',
 			variant: 'error',
 		});
 	};
 
 	const handleLimitFileError = () => {
-		console.log('One or more files exceed the undefined size limit.');
+		console.log('File cannot be more than 5.');
 		showToast({
-			message: 'One or more files exceed the undefined size limit.',
+			message: 'Files cannot exceed 1 MB size limit',
 			variant: 'error',
 		});
 	};
@@ -90,6 +90,20 @@ export default function CustomUploader({
 			if (fileTooLarge) {
 				console.error(`One or more files exceed the 5 size limit.`);
 				handleLimitFileError();
+				return;
+			}
+
+			const file = e.target.files?.[0];
+
+			if (file) {
+				const formattedFileSize = formatFileSize(file.size);
+				handleFileInfo((prevFileInfo) => ({
+					...prevFileInfo,
+					name: file.name,
+					size: formattedFileSize,
+					type: file.type,
+				}));
+			} else {
 				return;
 			}
 
@@ -160,7 +174,6 @@ export default function CustomUploader({
 				accept={fileFormats === 'JPG, PNG' ? 'image/*' : 'application/pdf'}
 				style={{ display: 'none' }}
 				onChange={handleFileSelect}
-				multiple // Allow multiple files
 			/>
 		</Box>
 	);
